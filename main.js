@@ -1,142 +1,200 @@
-// Get the HTML elements
+// Module-scoped app for Expense Tracker
 const $totalBalance = document.getElementById("totalBalance");
 const $incomeTotalAmount = document.getElementById("incomeTotalAmount");
 const $expenseTotalAmount = document.getElementById("expenseTotalAmount");
 const $descriptiveText = document.getElementById("descriptiveText");
 const $addNewTransactionForm = document.getElementById("addNewTransactionForm");
 const $amountText = document.getElementById("amountText");
-const $btnAddTransaction = document.getElementById("btnAddTransaction");
 const $historyListContainer = document.getElementById("historyListContainer");
+const $themeToggle = document.getElementById("themeToggle");
 
-// Function to generate a Random ID
+const STORAGE_KEY = "expense_tracker_transactions_v1";
+
 function generateUID() {
-  return Math.random().toString(36).slice(2);
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
-// Function to format date into the Card
-function formatDate(date) {
-  const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  return months[date.getMonth()];
+function formatMonth(date) {
+  return new Intl.DateTimeFormat(navigator.language, { month: "short" }).format(date);
 }
 
-// Array of data
-const transactions = [
-  { id: "1", description: "Item 1", amount: 12.6, date: new Date() },
-  { id: "2", description: "Item 2", amount: -10.55, date: new Date() },
-  { id: "3", description: "Item 3", amount: 45.0, date: new Date() },
+function formatCurrency(value) {
+  try {
+    return new Intl.NumberFormat(navigator.language || "en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 2,
+    }).format(value);
+  } catch (e) {
+    return `$${Number(value).toFixed(2)}`;
+  }
+}
+
+function loadTransactions() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // restore Date objects
+    return parsed.map((t) => ({ ...t, date: new Date(t.date) }));
+  } catch (e) {
+    console.warn("Failed to load transactions", e);
+    return null;
+  }
+}
+
+function saveTransactions(list) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  } catch (e) {
+    console.warn("Failed to save transactions", e);
+  }
+}
+
+let transactions = loadTransactions() || [
+  { id: generateUID(), description: "Salary", amount: 1200.0, date: new Date() },
+  { id: generateUID(), description: "Groceries", amount: -54.25, date: new Date() },
 ];
 
-/**
- * Append Card elements into the History list of transactions
- */
-function addNewTransactionDOM(transaction) {
+function createCard(transaction) {
   const sign = transaction.amount < 0 ? "-" : "+";
 
-  const item = document.createElement("div");
+  const item = document.createElement("article");
+  item.className = "card";
+  item.setAttribute("role", "listitem");
+  item.dataset.id = transaction.id;
 
-  // Add class to the main container
-  item.classList.add("card");
-
-  // Inject the HTML for paint the card
   item.innerHTML = `
     <div class="column-1">
-        <p>${transaction.date.getDate()}</p>
-        <p>${formatDate(transaction.date)}</p>
+      <p class="day">${transaction.date.getDate()}</p>
+      <p class="month">${formatMonth(transaction.date)}</p>
     </div>
     <div class="column-2">
-        <p class="description">${transaction.description}</p>
-        <p class="amount ${transaction.amount > 0 ? "income" : "expense"}">
-          ${sign}$${Math.abs(transaction.amount).toFixed(2)}
-        </p>
+      <p class="description">${escapeHtml(transaction.description)}</p>
+      <div class="amount-wrap">
+        <p class="amount ${transaction.amount > 0 ? "income" : "expense"}">${formatCurrency(transaction.amount)}</p>
+        <button class="delete-btn" aria-label="Delete transaction" data-id="${transaction.id}">✕</button>
+      </div>
     </div>
   `;
 
-  // Inject the card into the history list
-  $historyListContainer.appendChild(item);
+  return item;
+}
+
+function escapeHtml(text) {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return String(text).replace(/[&<>"']/g, (m) => map[m]);
+}
+
+function renderTransactions() {
+  $historyListContainer.innerHTML = "";
+  const list = document.createElement('div');
+  list.setAttribute('role', 'list');
+  transactions.forEach((t) => list.appendChild(createCard(t)));
+  $historyListContainer.appendChild(list);
   updateUIValues();
 }
 
-/**
- * Handle the form submit and update the UI
- */
+function addTransaction(transaction) {
+  transactions.unshift(transaction);
+  saveTransactions(transactions);
+  renderTransactions();
+}
+
+function deleteTransaction(id) {
+  transactions = transactions.filter((t) => t.id !== id);
+  saveTransactions(transactions);
+  renderTransactions();
+}
+
+function updateUIValues() {
+  const amounts = transactions.map((t) => Number(t.amount) || 0);
+  const total = amounts.reduce((a, b) => a + b, 0);
+  const income = amounts.filter((v) => v > 0).reduce((a, b) => a + b, 0);
+  const expense = amounts.filter((v) => v < 0).reduce((a, b) => a + b, 0);
+
+  $totalBalance.innerText = formatCurrency(total);
+  $incomeTotalAmount.innerText = formatCurrency(income);
+  $expenseTotalAmount.innerText = formatCurrency(Math.abs(expense));
+}
+
 function handleFormSubmit(e) {
   e.preventDefault();
+  const description = $descriptiveText.value.trim();
+  const amount = Number.parseFloat($amountText.value);
 
-  const { value: descriptiveValue } = $descriptiveText;
-  const amountValue = Number.parseFloat($amountText.value);
-
-  // Handle validation
-  if (!descriptiveValue || !amountValue) {
-    alert("Please, enter a valid description and amount");
+  if (!description) {
+    $descriptiveText.focus();
+    alert('Please enter a description for the transaction.');
+    return;
+  }
+  if (!Number.isFinite(amount) || amount === 0) {
+    $amountText.focus();
+    alert('Please enter a non-zero numeric amount.');
     return;
   }
 
   const transaction = {
     id: generateUID(),
-    description: descriptiveValue,
-    amount: Number.parseFloat(amountValue),
+    description,
+    amount: Math.round(amount * 100) / 100,
     date: new Date(),
   };
 
-  transactions.push(transaction);
-
-  addNewTransactionDOM(transaction);
-
-  updateUIValues();
-
-  $descriptiveText.value = "";
-  $amountText.value = "";
+  addTransaction(transaction);
+  $addNewTransactionForm.reset();
+  $descriptiveText.focus();
 }
 
-function updateUIValues() {
-  const amounts = transactions.map((transaction) => transaction.amount);
+// Event delegation for delete buttons
+$historyListContainer.addEventListener('click', (e) => {
+  const btn = e.target.closest('.delete-btn');
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (!id) return;
+  if (confirm('Delete this transaction?')) deleteTransaction(id);
+});
 
-  // Calculate balance total
-  const totalBalance = amounts.reduce((acc, value) => acc + value, 0);
+$addNewTransactionForm.addEventListener('submit', handleFormSubmit);
 
-  // Calculate income total
-  const incomeTotal = amounts
-    .filter((amount) => amount > 0)
-    .reduce((acc, value) => acc + value, 0)
-    .toFixed(2);
+// Theme toggle (simple)
+function initTheme() {
+  const stored = localStorage.getItem('expense_tracker_theme');
+  if (stored === 'dark') {
+    document.documentElement.classList.add('dark');
+    if ($themeToggle) $themeToggle.setAttribute('aria-pressed', 'true');
+    return;
+  }
+  if (stored === 'light') {
+    document.documentElement.classList.remove('dark');
+    if ($themeToggle) $themeToggle.setAttribute('aria-pressed', 'false');
+    return;
+  }
 
-  // Calculate expense total
-  const expenseTotal = amounts
-    .filter((amount) => amount < 0)
-    .reduce((acc, value) => acc + value, 0)
-    .toFixed(2);
+  // No explicit preference: follow system preference
+  const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+  const prefersDark = mq ? mq.matches : false;
+  document.documentElement.classList.toggle('dark', prefersDark);
+  if ($themeToggle) $themeToggle.setAttribute('aria-pressed', String(prefersDark));
 
-  // Push HTML values into elements
-  $totalBalance.innerText = `$${totalBalance}`;
-  $incomeTotalAmount.innerText = `$${incomeTotal}`;
-  $expenseTotalAmount.innerText = `$${Math.abs(expenseTotal)}`;
+  // Listen to system changes only when user hasn't set a preference
+  if (mq && mq.addEventListener) {
+    mq.addEventListener('change', (e) => {
+      if (!localStorage.getItem('expense_tracker_theme')) {
+        document.documentElement.classList.toggle('dark', e.matches);
+        if ($themeToggle) $themeToggle.setAttribute('aria-pressed', String(e.matches));
+      }
+    });
+  }
 }
 
-/**
- * Function where the app begin
- */
-function init() {
-  // Clear the history list
-  $historyListContainer.innerHTML = "";
-
-  // Print the dummy data into the DOM
-  transactions.forEach(addNewTransactionDOM);
+if ($themeToggle) {
+  $themeToggle.addEventListener('click', () => {
+    const isDark = document.documentElement.classList.toggle('dark');
+    $themeToggle.setAttribute('aria-pressed', String(isDark));
+    localStorage.setItem('expense_tracker_theme', isDark ? 'dark' : 'light');
+  });
 }
 
-// Begin the app
-init();
-document.addEventListener("submit", handleFormSubmit);
+initTheme();
+renderTransactions();

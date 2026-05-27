@@ -5,6 +5,10 @@
   --accent2: #999bb8;
   --danger: #d10014;
   --dark: #272838;
+  --bg: #ffffff;
+  --muted: #6b6b7a;
+  --card: #ffffff;
+  --shadow: rgba(39, 40, 56, 0.08);
 }
 
 * {
@@ -13,25 +17,61 @@
   box-sizing: border-box;
 }
 
-body {
-  font-family: "Poppins", sans-serif;
-  background-color: #fff;
-  color: var(--dark);
+html, body {
+  height: 100%;
 }
 
-h2.app-title {
-  font-size: 2em;
-  text-align: center;
-  margin-top: 2.6em;
+body {
+  font-family: "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  background-color: var(--bg);
+  color: var(--dark);
+  -webkit-font-smoothing:antialiased;
+}
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  z-index: 9999;
+}
+
+.site-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:1.25rem 1rem;
+}
+
+h1.app-title {
+  font-size:1.6rem;
+}
+
+.header-actions button {
+  background:transparent;
+  border:none;
+  cursor:pointer;
+  font-size:1.1rem;
 }
 
 .container {
   max-width: 95%;
   margin: 0 auto;
+  padding: 0 1rem 2rem;
 }
 
 .center-column {
-  max-width: 462px;
+  max-width: 540px;
   margin: 0 auto;
 }
 
@@ -47,7 +87,7 @@ h2.app-title {
 }
 
 .balance-container .balance-amount {
-  font-weight: bold;
+  font-weight: 700;
   font-size: 2.4em;
 }
 
@@ -66,6 +106,7 @@ h2.app-title {
   align-items: center;
   padding: 16px 0;
   color: #fff;
+  border-radius: 8px;
 }
 
 .total-info .amount-container.income-color {
@@ -92,7 +133,7 @@ h2.app-title {
 }
 
 .add-transaction .title {
-  font-size: 1em;
+  font-size: 0.95em;
   color: var(--accent2);
   margin-bottom: 1em;
   text-transform: uppercase;
@@ -115,7 +156,8 @@ h2.app-title {
   outline: none;
   border: 1px solid var(--accent2);
   padding: 0 0.7em;
-  font-size: 0.9em;
+  font-size: 0.95em;
+  border-radius: 6px;
 }
 
 .add-transaction button.send-btn {
@@ -128,7 +170,12 @@ h2.app-title {
   padding: 0 2.5em;
   margin: 0 auto;
   cursor: pointer;
+  border-radius: 6px;
+  transition: transform .12s ease, box-shadow .12s ease;
 }
+.add-transaction button.send-btn:active { transform: translateY(1px); }
+
+.form-input:focus, button:focus { box-shadow: 0 0 0 3px rgba(60,131,254,0.12); }
 
 /* === HISTORY LIST === */
 .history-container .history-row-title {
@@ -152,14 +199,14 @@ h2.app-title {
 }
 
 .history-container .card {
-  background-color: #fff;
+  background-color: var(--card);
   display: flex;
   flex-direction: row;
   align-items: center;
   padding: 1em;
-  box-shadow: 0px 20px 25px rgba(0, 0, 0, 0.1),
-    0px 10px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 8px 20px var(--shadow);
   margin-bottom: 1rem;
+  border-radius: 8px;
 }
 
 .history-container .card .column-1 {
@@ -187,34 +234,30 @@ h2.app-title {
   padding-left: 0.6em;
 }
 
-.history-container .card .column-2 p.amount {
-  font-weight: 600;
-}
-.history-container .card .column-2 p.amount.income {
-  color: var(--accent);
-}
-.history-container .card .column-2 p.amount.expense {
-  color: var(--danger);
-}
+.history-container .card .column-2 .amount-wrap { display:flex; gap:0.75rem; align-items:center; }
+.history-container .card .column-2 p.amount { font-weight:600; }
+.history-container .card .column-2 p.amount.income { color: var(--accent); }
+.history-container .card .column-2 p.amount.expense { color: var(--danger); }
+.delete-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; padding: 0.25rem 0.35rem; border-radius:4px }
+.delete-btn:hover { background: rgba(0,0,0,0.04); color: var(--danger); }
 
 /* Tablet */
 @media (min-width: 640px) {
-  .container {
-    max-width: 940px;
-    margin: 0 auto;
-  }
-
-  h2.app-title {
-    font-size: 3em;
-    text-align: center;
-    margin-top: 1.6em;
-  }
+  .container { max-width: 920px; }
+  h1.app-title { font-size: 2.25rem; }
+  .center-column { max-width: 720px; }
 }
 
 /* Desktop */
 @media (min-width: 1024px) {
-  .container {
-    max-width: 940px;
-    margin: 0 auto;
-  }
+  .container { max-width: 1100px; }
+}
+
+/* Dark theme */
+:root.dark {
+  --bg: #0f1724;
+  --card: #0b1220;
+  --dark: #e6eef9;
+  --muted: #9aa4bf;
+  --shadow: rgba(2,6,23,0.6);
 }
