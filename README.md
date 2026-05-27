@@ -25,4 +25,3 @@ Or use the Live Server extension in VSCode.
 - Currency formatting uses the browser locale and defaults to USD.
 - Transactions are stored in `localStorage` under a versioned key.
 
-If you'd like, I can add automated tests or a small build pipeline next.
