@@ -198,3 +198,18 @@ if ($themeToggle) {
 
 initTheme();
 renderTransactions();
+
+// History collapse/expand toggle
+const $historyToggle = document.getElementById('historyToggle');
+if ($historyToggle) {
+  $historyToggle.addEventListener('click', () => {
+    const expanded = $historyToggle.getAttribute('aria-expanded') === 'true';
+    const newExpanded = !expanded;
+    $historyToggle.setAttribute('aria-expanded', String(newExpanded));
+    if (!newExpanded) {
+      $historyListContainer.classList.add('collapsed');
+    } else {
+      $historyListContainer.classList.remove('collapsed');
+    }
+  });
+}

@@ -198,6 +198,10 @@ h1.app-title {
   cursor: pointer;
 }
 
+.arrow-btn svg { transition: transform .18s ease; }
+.arrow-btn[aria-expanded="false"] svg { transform: rotate(-90deg); }
+.history-container.collapsed > div[role="list"] { display: none; }
+
 .history-container .card {
   background-color: var(--card);
   display: flex;
