@@ -51,10 +51,7 @@ function saveTransactions(list) {
   }
 }
 
-let transactions = loadTransactions() || [
-  { id: generateUID(), description: "Salary", amount: 1200.0, date: new Date() },
-  { id: generateUID(), description: "Groceries", amount: -54.25, date: new Date() },
-];
+let transactions = loadTransactions() || [];
 
 function createCard(transaction) {
   const sign = transaction.amount < 0 ? "-" : "+";
@@ -196,11 +193,21 @@ if ($themeToggle) {
   });
 }
 
+// History collapse/expand state (persisted)
+const COLLAPSE_KEY = 'expense_tracker_history_collapsed';
+const $historyToggle = document.getElementById('historyToggle');
+const storedCollapsed = localStorage.getItem(COLLAPSE_KEY) === 'true';
+if ($historyToggle) {
+  // aria-expanded should be the inverse of collapsed
+  $historyToggle.setAttribute('aria-expanded', String(!storedCollapsed));
+}
+if (storedCollapsed) {
+  $historyListContainer.classList.add('collapsed');
+}
+
 initTheme();
 renderTransactions();
 
-// History collapse/expand toggle
-const $historyToggle = document.getElementById('historyToggle');
 if ($historyToggle) {
   $historyToggle.addEventListener('click', () => {
     const expanded = $historyToggle.getAttribute('aria-expanded') === 'true';
@@ -211,5 +218,7 @@ if ($historyToggle) {
     } else {
       $historyListContainer.classList.remove('collapsed');
     }
+    // persist collapsed state
+    localStorage.setItem(COLLAPSE_KEY, String(!newExpanded));
   });
 }
